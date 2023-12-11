@@ -14,20 +14,25 @@ guide = Dict(zip(origin, destination))
 
 starting = origin[[x[end] for x in origin] .== 'A']
 nsteps = Array{Int}(undef, 0)
+path = Array{Array{String}}(undef, 0)
 for s in starting
   n = 0
-    current = s
+  current = s
+  hs = [current]
   for i in Iterators.cycle(instructions)
     direction = steps[i]
     current = guide[current][direction]
+    push!(hs, current)
     n += 1
     if current[end] == 'Z'
       break
     end
   end
+  push!(path, hs)
   push!(nsteps, n)
 end
 
-lcm(nsteps)
+path
 
+lcm(nsteps)
 
