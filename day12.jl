@@ -88,47 +88,48 @@ function find_possible_positions(list, n)
   return to_return
 end
 
-function count_ways(rr, dd)
+function count_ways(rr, dd, depth = 1)
   """
   Count possible ways for dd to fit in rr.
   """
   possible_block_1 = find_possible_positions(rr, dd[1] + 1)
-  total_ways = 0
+  ways = 0
   if length(dd) == 1
     for p in reverse(possible_block_1)
       if any(rr[p+dd[1]:end] .== 1)
         break
       end
-      total_ways += 1
+      ways += 1
     end
-    return total_ways
+    return ways
   end
+  new_dd = dd[2:end]
+  total_spaces = sum(new_dd) + length(new_dd)
   for p in possible_block_1
-    new_dd = dd[2:end]
     new_rr = rr[p+dd[1]+1:end]
-    total_ways += count_ways(new_rr, new_dd)
+    if length(new_rr) < total_spaces
+      continue
+    end
+    ways += count_ways(new_rr, new_dd, depth + 1)
   end
-  return total_ways
+  return ways
 end
 
 path = "day12.csv"
-rows, dist, _, _ = load_data(path, expand = 5)
+rows, dist, _, _ = load_data(path, expand = 2);
+permutedims(rows[49])
 
-# total_ways = Dict{Int, Int}()
 @load "total_ways.bson" total_ways
 
-iterator = collect( enumerate(zip(rows, dist)) )
-iterator = sort(iterator, by = x -> length(x[2][1]))
-iter = ProgressBar(iterator[101:200])
-Threads.@threads for data in iter
-  j = data[1]
+remaining = [x for x in range(1, 1_000) if !(x in keys(total_ways))]
+iter = ProgressBar(reverse(remaining))
+Threads.@threads for j in iter
   if get(total_ways, j, -1) != -1
-    set_description(iter, "O - " * string(j))
-    continue
+    println("This shouldn't happen.")
   end
-  rr, dd = data[2]
+  rr = rows[j]
+  dd = dist[j]
   total_ways[j] = count_ways(rr, dd)
-  set_description(iter, "F - " * string(j))
 end
 
 @save "total_ways.bson" total_ways
