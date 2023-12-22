@@ -50,11 +50,7 @@ while true
   end
 end
 
-path = [array[x] for x in loop]
-x = collect(range(0, length(path) - 1))
-y = reverse(x)
-maximum([min(xx, yy) for (xx, yy) in zip(x, y)])
-
+x = collect(range(0, length(loop) - 1))
 loop_array = [[s[2], -s[1]] for s in loop]
 path = loop_array[2:end]
 dloop = diff(loop_array)

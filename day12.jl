@@ -2,6 +2,7 @@ using IterTools
 using ProgressBars
 using Debugger
 using BSON: @save, @load
+using Dates
 
 function load_data(path; expand = 1)
   ## Open file.
@@ -45,14 +46,14 @@ function put_block(list, n)
   Return the first possible position, nothing otherwise.
   """
   starting = findfirst(list .!= 0) # When there are no spaces.
-  if starting == nothing # If there is only zeros.
+  if isnothing(starting) # If there is only zeros.
     return nothing
   end
   if n > length(list) - starting + 1 # If there is no space for block.
     return nothing
   end
   sub_block = list[starting:starting+n-1]
-  if all(sub_block[1:end-1] .>= 1) && (sub_block[end] != 1)
+  if (sub_block[end] != 1) && all(sub_block[1:end-1] .>= 1)
     return starting
   end
   return nothing
@@ -72,14 +73,14 @@ function find_possible_positions(list, n)
       break
     end
     ds = put_block(list[starting+1:end], n)
-    if (ds != nothing)
+    if !isnothing(ds)
       starting += ds
       if (starting == 1) || (list[starting-1] != 1)
         push!(to_return, starting)
       end
     else
       ds = findfirst(list[starting+1:end] .!= 1)
-      if ds == nothing
+      if isnothing(ds)
         break
       end
       starting += ds
@@ -88,48 +89,61 @@ function find_possible_positions(list, n)
   return to_return
 end
 
-function count_ways(rr, dd, depth = 1)
+function count_ways(rr, dd, c_time)
   """
   Count possible ways for dd to fit in rr.
   """
-  possible_block_1 = find_possible_positions(rr, dd[1] + 1)
+  # if Dates.value(Dates.now() - c_time) > 30_000
+  #   return nothing
+  # end
   ways = 0
+  possible_block_1 = find_possible_positions(rr, dd[1] + 1)
   if length(dd) == 1
-    for p in reverse(possible_block_1)
-      if any(rr[p+dd[1]:end] .== 1)
-        break
-      end
-      ways += 1
+    last_one = findlast(rr .== 1)
+    if isnothing(last_one)
+      return length( possible_block_1 )
     end
-    return ways
+    return count( possible_block_1 .> last_one - dd[1] )
   end
   new_dd = dd[2:end]
-  total_spaces = sum(new_dd) + length(new_dd)
+  n_blocks = length(new_dd)
+  total_spaces = sum(new_dd) + n_blocks
   for p in possible_block_1
     new_rr = rr[p+dd[1]+1:end]
-    if length(new_rr) < total_spaces
-      continue
+    if (length(new_rr) < total_spaces) || (count(new_rr .== 0) > n_blocks)
+      break
     end
-    ways += count_ways(new_rr, new_dd, depth + 1)
+    to_add = count_ways(new_rr, new_dd, c_time)
+    # if isnothing(to_add)
+    #   return nothing
+    # end
+    ways += to_add
   end
   return ways
 end
 
+j = 1
+rr = rows[j]
+dd = dist[j]
+@time count_ways(rr, dd, Dates.now())
+
+
 path = "day12.csv"
-rows, dist, _, _ = load_data(path, expand = 2);
-permutedims(rows[49])
+rows, dist, _, _ = load_data(path, expand = 5);
 
 @load "total_ways.bson" total_ways
 
 remaining = [x for x in range(1, 1_000) if !(x in keys(total_ways))]
-iter = ProgressBar(reverse(remaining))
+iter = ProgressBar(remaining)
 Threads.@threads for j in iter
-  if get(total_ways, j, -1) != -1
-    println("This shouldn't happen.")
-  end
   rr = rows[j]
   dd = dist[j]
-  total_ways[j] = count_ways(rr, dd)
+  rri = [reverse(rr[1:end-1])..., 0]
+  ddi = reverse(dd)
+  to_add = count_ways(rri, ddi, Dates.now())
+  if !isnothing(to_add)
+    total_ways[j] = to_add
+  end
 end
 
 @save "total_ways.bson" total_ways
