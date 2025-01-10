@@ -1,5 +1,6 @@
 # Imports
 using DataStructures
+using ProgressBars
 
 # Load data
 ## Open file.
@@ -12,28 +13,16 @@ dont = r"don't\(\)"
 re = r"mul\((\d{1,3}),(\d{1,3})\)"
 prs = x -> parse(Int, x)
 
-function matchdont(txt)
-  mth = match(dont, txt)
-  idx = length(txt)
-  if !isnothing(mth)
-    idx = mth.offset
-  end
-  return txt[1:idx-1], txt[idx+7:end]
-end
-
 result = 0
-for d in data[4:4]
-  txt = d
+for d in ProgressBar(data)
+  aux = d
   while true
-    txt0, txt1 = matchdont(txt)
-    for m in eachmatch(re, txt0)
-      global result += prs(m[1]) * prs(m[2])
-    end
-    mth = match(dore, txt1)
+    mth = match(re, aux)
     if isnothing(mth)
       break
     end
-    txt = txt1[mth.offset+5:end]
+    global result += parse(Int, mth[1]) * parse(Int, mth[2])
+    aux = aux[mth.offset + 1 : end]
   end
 end
-
+println(result)
