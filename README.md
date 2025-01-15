@@ -1,0 +1,2 @@
+## Advent of Code 2023 & 2024
+This repository contains my solutions to (some of) the problems in [Advent of Code](https://adventofcode.com/). The scripts can be found in the folders [2023](2023) and [2024](2024). Most of the solutions are in Julia, some in Bash and some others in Python.
